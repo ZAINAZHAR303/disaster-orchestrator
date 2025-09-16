@@ -1,53 +1,76 @@
 # app/agents/imagery_agent.py
-import io
-from typing import Dict, Any
-from PIL import Image, ImageStat
-import numpy as np
+import os
+import json
+import httpx
 import base64
-import uuid
+from dotenv import load_dotenv
 
-def _load_image_from_base64(b64: str) -> Image.Image:
-    data = base64.b64decode(b64)
-    return Image.open(io.BytesIO(data)).convert("RGB")
+load_dotenv()
 
-def dummy_imagery_classifier(payload: Dict[str, Any]) -> Dict[str, Any]:
+# MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
+MISTRAL_API_KEY = "myzTuyqMiU1MMYLhX8ZprzKA4079BdW1"
+MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
+
+
+async def imagery_triage_agent(payload: dict):
     """
-    Very simple dummy classifier:
-    - Accepts either an 'image_b64' (base64 string) or 'image_path' in payload.
-    - Returns a list of 'zones' with fake severity scores and centers.
-    This is quick to run and perfect for MVP/demo simulation.
+    Imagery triage agent:
+    - Accepts {"image_b64": "..."} or {"image_url": "..."}
+    - Sends a text-only prompt to Mistral (safe fallback)
+    - Returns a simple classification like {"category": "flood"} etc.
     """
+    image_url = payload.get("image_url")
+    image_b64 = payload.get("image_b64")
 
-    image = None
-    if "image_b64" in payload:
-        image = _load_image_from_base64(payload["image_b64"])
-    elif "image_path" in payload:
-        image = Image.open(payload["image_path"]).convert("RGB")
+    # Construct user prompt
+    if image_url:
+        user_prompt = f"Analyze this disaster image from URL: {image_url}\nClassify into one of: [flood, earthquake, fire, landslide, other] and respond with JSON."
+    elif image_b64:
+        # ⚠ Mistral does not accept base64 input directly, so we just tell the model that an image is provided
+        user_prompt = (
+            "An image has been provided in base64 format (not visible to you). "
+            "Assume it is a disaster image and classify it into one of: "
+            "[flood, earthquake, fire, landslide, other] and respond with JSON."
+        )
     else:
-        # if nothing provided, return a static sample
-        return {
-            "zones": [
-                {"id": "Z-A", "center": [24.8607, 67.0011], "severity": 0.85, "bbox": [67.0,24.8,67.1,24.9]},
-                {"id": "Z-B", "center": [24.8707, 67.0111], "severity": 0.6, "bbox": [67.01,24.86,67.02,24.87]},
-            ]
-        }
+        return {"error": "No image provided"}
 
-    # Heuristic: compute "blue intensity ratio" as a lightweight proxy for water presence
-    arr = np.array(image).astype(np.float32)
-    r_mean = arr[..., 0].mean()
-    g_mean = arr[..., 1].mean()
-    b_mean = arr[..., 2].mean()
-
-    # compute a normalized water-likeness score
-    water_score = max(0.0, min(1.0, (b_mean - (r_mean+g_mean)/2) / 50.0 + 0.5))
-
-    # derive some dummy zones based on image features
-    # (in real model you'd run segmentation and extract bounding boxes)
-    zone_id = "Z-" + uuid.uuid4().hex[:6]
-    zone = {
-        "id": zone_id,
-        "center": [24.86 + (b_mean % 0.01), 67.00 + (r_mean % 0.01)],
-        "severity": float(round(water_score, 3)),
-        "bbox": [67.00, 24.85, 67.02, 24.87]
+    payload_json = {
+        "model": "mistral-small",  # safer model than mistral-tiny
+        "messages": [
+            {"role": "system", "content": "You are a disaster imagery triage assistant."},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.2,
+        "max_tokens": 200
     }
-    return {"zones": [zone], "image_stats": {"r_mean": float(r_mean), "g_mean": float(g_mean), "b_mean": float(b_mean)}}
+
+    # Debug logging (you can comment this later)
+    print("=== Sending to Mistral ===")
+    print(json.dumps(payload_json, indent=2))
+    print("=========================")
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.post(
+            MISTRAL_API_URL,
+            headers={
+                "Authorization": f"Bearer {MISTRAL_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json=payload_json
+        )
+
+        # Log response text if there's an error
+        if resp.status_code >= 400:
+            print("=== Mistral Error Response ===")
+            print(resp.text)
+
+        resp.raise_for_status()
+        data = resp.json()
+
+    # Extract model's reply safely
+    try:
+        reply = data["choices"][0]["message"]["content"]
+        return {"classification": reply}
+    except Exception:
+        return {"error": "Could not parse Mistral response", "raw": data}
