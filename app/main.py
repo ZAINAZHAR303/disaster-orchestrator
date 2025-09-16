@@ -3,7 +3,10 @@ import os
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from .orchestrator import Orchestrator
-from .agents.imagery_agent import dummy_imagery_classifier
+# from .agents.imagery_agent import dummy_imagery_classifier
+from .agents.imagery_agent import imagery_triage_agent
+
+
 from .agents.social_agent import dummy_social_triage
 from .agents.logistics_agent import simple_logistics_optimizer
 from .coral_integration import register_responder_agent
@@ -15,7 +18,7 @@ app = FastAPI(title="Disaster Response Orchestrator (MVP)")
 ORCH = Orchestrator(langgraph_api_key=os.getenv("LANGGRAPH_API_KEY"))
 
 # Register local agents for local-mode testing
-ORCH.register_agent("imagery_triage", dummy_imagery_classifier)
+ORCH.register_agent("imagery_triage", imagery_triage_agent)
 ORCH.register_agent("social_triage", dummy_social_triage)
 ORCH.register_agent("logistics_optimizer", simple_logistics_optimizer)
 
