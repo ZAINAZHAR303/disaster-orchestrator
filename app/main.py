@@ -1,10 +1,13 @@
 # app/main.py
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import uvicorn
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Request
+
 from .orchestrator import Orchestrator
 # from .agents.imagery_agent import dummy_imagery_classifier
-from .agents.imagery_agent import imagery_triage_agent
+from .agents.imagery_agent import imagery_triage_agent  
 
 
 from .agents.social_agent import dummy_social_triage
@@ -25,31 +28,39 @@ ORCH.register_agent("logistics_optimizer", simple_logistics_optimizer)
 # Simple in-memory store for last run results (swap with MongoDB later)
 LAST_RUN = {}
 
+
+
 @app.post("/api/simulate")
-async def simulate_disaster(file: UploadFile = File(None), resources: dict = None):
+async def simulate_disaster(
+    file: UploadFile = File(None),
+    request: Request = None
+):
     """
     POST /api/simulate
-    - file: optional image upload (satellite / drone image)
-    - resources: optional JSON body with available rescue resources
-    Returns orchestration output.
+    - file: optional image upload
+    - JSON body can include: { "image_url": "...", "resources": {...} }
     """
+    payload = await request.json() if request else {}
     image_b64 = None
+    image_url = payload.get("image_url")
+
     if file:
         content = await file.read()
         image_b64 = base64.b64encode(content).decode("utf-8")
 
     inputs = {
-        "image_payload": {"image_b64": image_b64} if image_b64 else {},
+        "image_payload": {"image_b64": image_b64} if image_b64 else {"image_url": image_url},
         "social_payload": {"posts": [
             {"id":"s1","text":"People trapped near river bank", "latlng":[24.86,67.00]},
             {"id":"s2","text":"Bridge collapsed at X", "latlng":[24.87,67.02]}
         ]},
-        "resources": resources or {"boats": 2, "trucks": 3}
+        "resources": payload.get("resources", {"boats": 2, "trucks": 3})
     }
 
     result = await ORCH.orchestrate(inputs)
     LAST_RUN["result"] = result
     return {"status": "ok", "result": result}
+
 
 @app.get("/api/result")
 def get_last_result():
