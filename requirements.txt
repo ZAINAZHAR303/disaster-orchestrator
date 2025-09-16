@@ -1,12 +1,25 @@
-fastapi==0.98.0
-uvicorn[standard]==0.22.0
-httpx==0.24.1
-pillow==10.0.0
-numpy==1.26.0
-python-multipart==0.0.6
-pydantic==1.10.12
-# The following are placeholders — replace with actual langgraph SDK package name if different
-langgraph-sdk==0.0.1
-# Optional: if you want to use a vector DB or MongoDB later
-motor==4.4.0
-python-dotenv==1.0.0
+# Core server framework
+fastapi
+uvicorn[standard]
+
+# Agent orchestration
+langgraph
+crewai
+mistralai
+
+# Image handling (for imagery triage)
+pillow
+
+# Data handling
+pydantic
+numpy
+
+# HTTP calls (for Coral or other APIs)
+httpx
+requests
+
+# Environment variables
+python-dotenv
+
+# Async tools and utilities
+anyio
