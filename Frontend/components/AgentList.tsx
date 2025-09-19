@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Agent } from '@/types/agent';
-import { fetchAgents } from '@/lib/api';
+// import { fetchAgents } from '@/lib/api';
 import AgentCard from './AgentCard';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,8 +18,8 @@ export default function AgentList() {
       try {
         setLoading(true);
         setError(null);
-        const fetchedAgents = await fetchAgents();
-        setAgents(fetchedAgents);
+        // const fetchedAgents = await fetchAgents();
+        // setAgents(fetchedAgents);
       } catch (err) {
         setError('Failed to load agents. Please make sure the backend server is running.');
         console.error('Error loading agents:', err);
