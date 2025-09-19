@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface ApiResponse {
   status: string;
@@ -35,35 +37,57 @@ interface ApiResponse {
 }
 
 export default function DisasterDashboard() {
+  const [imageUrl, setImageUrl] = useState("");
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const fetchSimulationData = async () => {
+  const handleSimulate = async () => {
+    if (!imageUrl.trim()) {
+      setError("Please enter an image URL.");
+      return;
+    }
+    setError("");
     setLoading(true);
     try {
       const response = await fetch(
-        "https://disasterbackend-production-6475.up.railway.app/api/simulate"
+        "https://disasterbackend-production-6475.up.railway.app/api/simulate",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image_url: imageUrl }),
+        }
       );
-      if (!response.ok) throw new Error("Failed to fetch");
+
+      if (!response.ok) throw new Error("Failed to fetch data");
+
       const json: ApiResponse = await response.json();
       setData(json);
-    } catch (error) {
-      console.error("Error fetching data:", error);
+    } catch (err) {
+      console.error("Error:", err);
+      setError("Failed to fetch data. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchSimulationData();
-  }, []);
-
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-3xl font-bold text-center">🌍 Disaster Dashboard</h1>
-      <Button onClick={fetchSimulationData} disabled={loading}>
-        {loading ? "Refreshing..." : "Refresh Data"}
-      </Button>
+
+      {/* Input field for image URL */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <Input
+          placeholder="Enter image URL here"
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+        />
+        <Button onClick={handleSimulate} disabled={loading}>
+          {loading ? "Analyzing..." : "Simulate"}
+        </Button>
+      </div>
+
+      {error && <p className="text-red-600">{error}</p>}
 
       {/* Imagery Classification */}
       {data?.result?.imagery && (
@@ -78,7 +102,7 @@ export default function DisasterDashboard() {
       )}
 
       {/* Social Reports */}
-      {data?.result?.social?.reports && (
+      {data?.result?.social?.reports?.length > 0 && (
         <Card className="bg-white shadow-lg rounded-2xl">
           <CardContent className="p-4">
             <h2 className="text-xl font-semibold mb-2">📢 Social Reports</h2>
@@ -103,7 +127,7 @@ export default function DisasterDashboard() {
       )}
 
       {/* Priorities */}
-      {data?.result?.priorities && (
+      {data?.result?.priorities?.length > 0 && (
         <Card className="bg-white shadow-lg rounded-2xl">
           <CardContent className="p-4">
             <h2 className="text-xl font-semibold mb-2">⚠️ Priority Zones</h2>
@@ -128,8 +152,8 @@ export default function DisasterDashboard() {
         </Card>
       )}
 
-      {/* Logistics Assignments */}
-      {data?.result?.logistics?.assignments && (
+      {/* Logistics */}
+      {data?.result?.logistics?.assignments?.length > 0 && (
         <Card className="bg-white shadow-lg rounded-2xl">
           <CardContent className="p-4">
             <h2 className="text-xl font-semibold mb-2">🚛 Logistics</h2>
