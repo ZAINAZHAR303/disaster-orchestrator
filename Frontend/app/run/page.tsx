@@ -102,12 +102,12 @@ export default function DisasterDashboard() {
       )}
 
       {/* Social Reports */}
-      {data?.result?.social?.reports?.length > 0 && (
+      {(data?.result?.social?.reports?.length ?? 0) > 0 && (
         <Card className="bg-white shadow-lg rounded-2xl">
           <CardContent className="p-4">
             <h2 className="text-xl font-semibold mb-2">📢 Social Reports</h2>
             <ul className="space-y-2">
-              {data.result.social.reports.map((report) => (
+              {data?.result?.social?.reports?.map((report) => (
                 <li
                   key={report.id}
                   className="border p-2 rounded-lg bg-gray-50"
@@ -127,12 +127,12 @@ export default function DisasterDashboard() {
       )}
 
       {/* Priorities */}
-      {data?.result?.priorities?.length > 0 && (
+      {(data?.result?.priorities?.length ?? 0) > 0 && (
         <Card className="bg-white shadow-lg rounded-2xl">
           <CardContent className="p-4">
             <h2 className="text-xl font-semibold mb-2">⚠️ Priority Zones</h2>
             <ul className="space-y-2">
-              {data.result.priorities.map((priority) => (
+              {data?.result?.priorities?.map((priority) => (
                 <li
                   key={priority.zone_id}
                   className="border p-2 rounded-lg bg-gray-50"
@@ -153,12 +153,12 @@ export default function DisasterDashboard() {
       )}
 
       {/* Logistics */}
-      {data?.result?.logistics?.assignments?.length > 0 && (
+      {(data?.result?.logistics?.assignments?.length ?? 0) > 0 && (
         <Card className="bg-white shadow-lg rounded-2xl">
           <CardContent className="p-4">
             <h2 className="text-xl font-semibold mb-2">🚛 Logistics</h2>
             <ul className="space-y-2">
-              {data.result.logistics.assignments.map((assignment) => (
+              {data?.result?.logistics?.assignments?.map((assignment) => (
                 <li
                   key={assignment.id}
                   className="border p-2 rounded-lg bg-gray-50"
