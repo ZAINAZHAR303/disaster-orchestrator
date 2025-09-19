@@ -1,4 +1,4 @@
-import AgentList from '@/components/AgentList';
+// import AgentList from '@/components/AgentList';
 
 export default function AgentsPage() {
   return (
@@ -11,7 +11,7 @@ export default function AgentsPage() {
         </p>
       </div>
       
-      <AgentList />
+      {/* <AgentList /> */}
     </div>
   );
 }
